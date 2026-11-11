@@ -103,7 +103,7 @@
       boardB: v('--board-b'),
       heart: v('--heart'),
       star: v('--star'),
-      ring: v('--green-2'),
+      ring: v('--lilac'),
       accent: v('--accent-text'),
       spriteLine: v('--sprite-line'),
     };
