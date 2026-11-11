@@ -23,6 +23,7 @@
   --sky: #A2D2FF;
   --accent-text: #B83E76;
   --on-accent: #293247;          /* texto sobre botones pastel */
+  --sprite-line: #293247;        /* contorno pixel-art de ♥ y ✦ */
 
   --overlay: rgba(255, 251, 253, 0.72);
   --glow-1: rgba(248, 187, 208, 0.30);
@@ -47,6 +48,7 @@
     --board-a: #1C2640;
     --board-b: #202B47;
     --accent-text: #F8BBD0;
+    --sprite-line: #0D1117;
 
     --overlay: rgba(13, 17, 23, 0.72);
     --glow-1: rgba(248, 187, 208, 0.08);
@@ -404,11 +406,55 @@ kbd {
   }
 }
 
+/* Celular en horizontal: tablero a la izquierda, controles a la derecha */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 540px) {
+  body { align-items: flex-start; }
+  .app { max-width: 920px; }
+  .card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "board title"
+      "board hud"
+      "board dpad"
+      "board help";
+    align-content: center;
+    column-gap: 24px;
+  }
+  .title      { grid-area: title; }
+  .hud        { grid-area: hud; }
+  .dpad       { grid-area: dpad; }
+  .help-touch { grid-area: help; }
+  .board-wrap {
+    grid-area: board;
+    width: calc(100vh - 120px);
+    width: calc(100svh - 120px);
+    max-width: none;
+  }
+  .foot { display: none; }
+}
+
 /* 12. Animaciones y movimiento reducido ----------------- */
 @keyframes pop {
   from { opacity: 0; transform: translateY(6px) scale(0.95); }
   to   { opacity: 1; transform: none; }
 }
+
+/* El número del marcador "salta" al sumar puntos */
+@keyframes bump {
+  40% { transform: scale(1.22); }
+}
+.stat-value { transform-origin: left center; }
+.stat-value.bump { animation: bump 0.28s ease-out; }
+
+/* El tablero tiembla al chocar */
+@keyframes shake {
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(2px); }
+}
+.board-wrap.is-shaking { animation: shake 0.35s ease-in-out; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
