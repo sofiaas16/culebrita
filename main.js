@@ -1,7 +1,4 @@
-/* =========================================================
-   main.js — dibujo en <canvas>, controles e interfaz.
-   Usa la lógica de game.js a través de window.SnakeGame.
-   ========================================================= */
+// Dibujo, controles e interfaz. La lógica está en game.js.
 (function () {
   'use strict';
 
@@ -11,7 +8,6 @@
     return;
   }
 
-  /* ---------- Referencias al DOM ---------- */
   const $ = (id) => document.getElementById(id);
   const canvas = $('board');
   const ctx = canvas.getContext('2d');
@@ -28,17 +24,16 @@
     status: $('status'),
   };
 
-  /* ---------- Preferencias del sistema ---------- */
   const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const coarseQuery = window.matchMedia('(pointer: coarse)');
   const reduced = () => reducedQuery.matches;
 
   const BEST_KEY = 'pastel-snake:best';
-  const EYE = '#293247';
+  const EYE = '#1B3A2B';
   const POPUP_MS = 800;
 
-  /* ---------- Sprites pixel-art (# = relleno; el borde se calcula solo) ---------- */
+  // sprites pixel-art, el borde se calcula solo
   const HEART = makeSprite([
     '.##.##.',
     '#######',
@@ -74,21 +69,18 @@
     return { w, h, fill, line };
   }
 
-  /* ---------- Estado de la interfaz ---------- */
   let state = G.createState();
   let best = loadBest();
   let newRecord = false;
   let colors = readColors();
-  let boardSize = 0;      // lado del canvas en píxeles CSS
-  let cell = 0;           // lado de una celda en píxeles CSS
-  let acc = 0;            // tiempo acumulado para el siguiente paso
+  let boardSize = 0;
+  let cell = 0;
+  let acc = 0;
   let lastTime = performance.now();
-  let popups = [];        // textos "+1" / "+3" flotantes
+  let popups = [];
   let overTimer = 0;
 
-  /* =========================================================
-     Récord (localStorage puede fallar en modo privado)
-     ========================================================= */
+  // localStorage puede fallar en modo incógnito
   function loadBest() {
     try {
       const v = parseInt(localStorage.getItem(BEST_KEY), 10);
@@ -99,26 +91,23 @@
   }
 
   function saveBest() {
-    try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) { /* sin almacenamiento */ }
+    try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) {}
   }
 
-  /* =========================================================
-     Colores: se leen de las variables CSS (una sola fuente de verdad)
-     ========================================================= */
+  // los colores salen de las variables de style.css
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
     const v = (name) => cs.getPropertyValue(name).trim();
     const c = {
       boardA: v('--board-a'),
       boardB: v('--board-b'),
-      pink: v('--pink'),
-      blue: v('--blue'),
-      lilac: v('--lilac'),
-      sky: v('--sky'),
+      heart: v('--heart'),
+      star: v('--star'),
+      ring: v('--green-2'),
       accent: v('--accent-text'),
       spriteLine: v('--sprite-line'),
     };
-    c.gradient = [hexToRgb(c.blue), hexToRgb(c.lilac), hexToRgb(c.pink)];
+    c.gradient = ['--snake-head', '--snake-mid', '--snake-tail'].map((name) => hexToRgb(v(name)));
     return c;
   }
 
@@ -129,7 +118,7 @@
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
 
-  // f = 0 (cabeza, celeste) … 0.5 (lila) … 1 (cola, rosa)
+  // 0 = cabeza (verde más fuerte), 1 = cola (verde clarito)
   function bodyColor(f) {
     const [a, b, c] = colors.gradient;
     const from = f < 0.5 ? a : b;
@@ -143,16 +132,13 @@
   if (darkQuery.addEventListener) darkQuery.addEventListener('change', onSchemeChange);
   else darkQuery.addListener(onSchemeChange);
 
-  /* =========================================================
-     Tamaño del canvas: nítido en pantallas retina (devicePixelRatio)
-     ========================================================= */
+  // escalo por devicePixelRatio para que se vea nítido en celular
   function resize() {
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
-    // A partir de aquí dibujamos en píxeles CSS; el contexto escala solo.
     ctx.setTransform(canvas.width / rect.width, 0, 0, canvas.height / rect.height, 0, 0);
     boardSize = rect.width;
     cell = boardSize / state.cols;
@@ -161,9 +147,8 @@
   if ('ResizeObserver' in window) new ResizeObserver(resize).observe(canvas);
   else window.addEventListener('resize', resize);
 
-  /* =========================================================
-     Dibujo
-     ========================================================= */
+  // --- dibujo ---
+
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
     if (ctx.roundRect) {
@@ -183,7 +168,7 @@
     ctx.arc(x, y, r, 0, Math.PI * 2);
   }
 
-  // Rellena la celda de cuadrícula (gx, gy) redondeando bordes para que no haya rendijas.
+  // redondeo los bordes para que no queden rayitas entre celdas
   function fillCell(gx, gy, px, ox, oy) {
     const x0 = Math.round(ox + gx * px);
     const y0 = Math.round(oy + gy * px);
@@ -215,7 +200,7 @@
     const f = state.food;
     if (!f) return;
     const pulse = reduced() ? 1 : 1 + 0.07 * Math.sin(now / 220);
-    drawSprite(HEART, (f.x + 0.5) * cell, (f.y + 0.5) * cell, cell * pulse, colors.pink, colors.spriteLine);
+    drawSprite(HEART, (f.x + 0.5) * cell, (f.y + 0.5) * cell, cell * pulse, colors.heart, colors.spriteLine);
   }
 
   function drawStar(now) {
@@ -225,12 +210,12 @@
     const cy = (s.y + 0.5) * cell;
     const left = s.ttl / state.cfg.starLife;
 
-    // Anillo que muestra el tiempo que le queda a la estrella
+    // anillo con el tiempo que le queda
     ctx.save();
     ctx.lineWidth = Math.max(1.5, cell * 0.09);
     ctx.lineCap = 'round';
     ctx.globalAlpha = 0.35;
-    ctx.strokeStyle = colors.lilac;
+    ctx.strokeStyle = colors.ring;
     circle(cx, cy, cell * 0.62);
     ctx.stroke();
     ctx.globalAlpha = 1;
@@ -240,13 +225,12 @@
     ctx.stroke();
     ctx.restore();
 
-    // Parpadea cuando le queda poco (salvo con movimiento reducido)
     if (s.ttl <= 12 && !reduced() && Math.floor(now / 140) % 2) return;
     const twinkle = reduced() ? 1 : 1 + 0.08 * Math.sin(now / 160);
-    drawSprite(STAR, cx, cy, cell * 1.05 * twinkle, colors.sky, colors.spriteLine);
+    drawSprite(STAR, cx, cy, cell * 1.05 * twinkle, colors.star, colors.spriteLine);
   }
 
-  // Interpolación: 0 = posición anterior, 1 = posición actual
+  // cuánto vamos entre el paso anterior y el actual (para animar suave)
   function progress() {
     if (reduced()) return 1;
     if (state.status === 'running' || state.status === 'paused') return Math.min(acc / state.tickMs, 1);
@@ -272,10 +256,10 @@
     const headSize = cell * 0.92;
     const sizeOf = (i) => (i === 0 ? headSize : bodySize);
 
-    // De la cola a la cabeza, para que la cabeza quede encima.
+    // de la cola a la cabeza, así la cabeza queda arriba
     for (let i = n - 1; i >= 0; i--) {
       if (i < n - 1) {
-        // "Puente" en el punto medio entre dos segmentos: el cuerpo se ve continuo
+        // un bloque extra entre segmentos para que el cuerpo se vea pegadito
         const a = pts[i];
         const b = pts[i + 1];
         const m = blockRect((a.x + b.x) / 2, (a.y + b.y) / 2, bodySize);
@@ -290,7 +274,6 @@
       ctx.fill();
     }
 
-    // Brillito pixel en cada segmento (segunda pasada, siempre encima)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
     for (let i = 0; i < n; i++) {
       const s = sizeOf(i);
@@ -304,7 +287,7 @@
 
   function drawFace(h, now) {
     const d = G.DIRS[state.dir];
-    const px = -d.y;           // eje perpendicular a la dirección
+    const px = -d.y;
     const py = d.x;
     const cx = (h.x + 0.5) * cell;
     const cy = (h.y + 0.5) * cell;
@@ -316,29 +299,28 @@
     ctx.lineCap = 'round';
     ctx.lineWidth = Math.max(1, cell * 0.065);
     for (const side of [-1, 1]) {
-      // Mejillas
+      // cachetes
       ctx.globalAlpha = 0.9;
-      ctx.fillStyle = colors.pink;
+      ctx.fillStyle = colors.heart;
       circle(cx - d.x * cell * 0.1 + px * cell * 0.3 * side, cy - d.y * cell * 0.1 + py * cell * 0.3 * side, cell * 0.075);
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      // Ojos
       const ex = cx + d.x * cell * 0.12 + px * cell * 0.19 * side;
       const ey = cy + d.y * cell * 0.12 + py * cell * 0.19 * side;
       ctx.strokeStyle = EYE;
       ctx.fillStyle = EYE;
-      if (dead) {                                   // x  x
+      if (dead) {
         ctx.beginPath();
         ctx.moveTo(ex - r, ey - r); ctx.lineTo(ex + r, ey + r);
         ctx.moveTo(ex + r, ey - r); ctx.lineTo(ex - r, ey + r);
         ctx.stroke();
-      } else if (blink) {                           // parpadeo
+      } else if (blink) {
         ctx.beginPath();
         ctx.moveTo(ex - px * r, ey - py * r);
         ctx.lineTo(ex + px * r, ey + py * r);
         ctx.stroke();
-      } else {                                      // ojo con brillo
+      } else {
         circle(ex, ey, r);
         ctx.fill();
         ctx.fillStyle = '#FFFFFF';
@@ -380,11 +362,10 @@
     drawPopups();
   }
 
-  /* =========================================================
-     Bucle principal: lógica a paso fijo, dibujo a cada frame
-     ========================================================= */
+  // --- bucle: la lógica va a su ritmo (tickMs) y se dibuja en cada frame ---
+
   function frame(now) {
-    const dt = Math.min(now - lastTime, 250);   // evita "saltos" al volver a la pestaña
+    const dt = Math.min(now - lastTime, 250);
     lastTime = now;
 
     if (state.status === 'running') {
@@ -408,9 +389,8 @@
     }
   }
 
-  /* =========================================================
-     Interfaz: marcador, pantallas, anuncios
-     ========================================================= */
+  // --- interfaz ---
+
   function renderScore() {
     ui.score.textContent = state.score;
     ui.best.textContent = best;
@@ -418,7 +398,7 @@
 
   function bump(el) {
     el.classList.remove('bump');
-    void el.offsetWidth;          // fuerza reflow para reiniciar la animación
+    void el.offsetWidth; // truco para reiniciar la animación
     el.classList.add('bump');
   }
 
@@ -467,9 +447,6 @@
     if (e.target === boardWrap) boardWrap.classList.remove('is-shaking');
   });
 
-  /* =========================================================
-     Acciones del juego
-     ========================================================= */
   function startGame() {
     if (!G.start(state)) return;
     acc = 0;
@@ -535,13 +512,12 @@
     const text = `Hiciste ${state.score} ${state.score === 1 ? 'punto' : 'puntos'}. Récord: ${best}.`;
     announce(`${title} ${text}`);
 
-    // Una pausita para ver el choque antes de mostrar la pantalla
+    // espero un poquito para que se vea el choque
     overTimer = setTimeout(() => {
       showOverlay({ kicker, title, text, button: 'Jugar de nuevo' }, true);
     }, reduced() ? 0 : 450);
   }
 
-  // Girar desde cualquier control
   function steer(dir) {
     if (state.status === 'over') return;
     if (state.status === 'paused') resumeGame();
@@ -549,30 +525,27 @@
     if (state.status === 'ready') startGame();
   }
 
-  /* =========================================================
-     Controles
-     ========================================================= */
+  // --- controles ---
 
-  // Teclado. Las letras usan e.code (tecla física), así WASD
-  // funciona igual con distribuciones de teclado distintas.
+  // uso e.code para las letras, así WASD funciona con cualquier teclado
   const KEY_DIR = {
     ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
     KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right',
   };
 
   window.addEventListener('keydown', (e) => {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;   // no romper Ctrl+R, etc.
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     const onControl = e.target instanceof Element && e.target.closest('button, a');
 
     const dir = KEY_DIR[e.key] || KEY_DIR[e.code];
     if (dir) {
-      e.preventDefault();                              // las flechas no hacen scroll
+      e.preventDefault();
       steer(dir);
       return;
     }
 
     if (e.code === 'Space' || e.code === 'KeyP') {
-      if (onControl && e.code === 'Space') return;     // deja que el botón haga su clic
+      if (onControl && e.code === 'Space') return; // que el botón haga su clic normal
       e.preventDefault();
       if (!e.repeat) togglePause();
       return;
@@ -585,8 +558,7 @@
     }
   });
 
-  // Deslizar el dedo sobre el tablero. Al pasar el umbral se gira y se
-  // reinicia el punto de partida, así puedes encadenar giros sin levantar el dedo.
+  // deslizar sobre el tablero; se pueden encadenar giros sin levantar el dedo
   let swipe = null;
 
   canvas.addEventListener('pointerdown', (e) => {
@@ -609,8 +581,7 @@
   canvas.addEventListener('pointerup', endSwipe);
   canvas.addEventListener('pointercancel', endSwipe);
 
-  // Botones ▲ ◀ ▼ ▶. pointerdown responde al instante (sin esperar al "click");
-  // el click solo se usa cuando viene del teclado (e.detail === 0).
+  // pointerdown para que responda al instante; el click solo cuenta si viene del teclado
   document.querySelectorAll('.dpad-btn').forEach((btn) => {
     const dir = btn.dataset.dir;
     const release = () => btn.classList.remove('is-pressed');
@@ -628,12 +599,10 @@
   ui.button.addEventListener('click', primaryAction);
   ui.pause.addEventListener('click', togglePause);
 
-  // Si cambias de pestaña, el juego se pausa solo.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && state.status === 'running') pauseGame();
   });
 
-  /* ---------- ¡Arrancar! ---------- */
   renderScore();
   resize();
   requestAnimationFrame(frame);

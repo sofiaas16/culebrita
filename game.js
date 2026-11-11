@@ -1,13 +1,7 @@
-/* =========================================================
-   game.js — la lógica de Pastel Snake.
-   No toca el DOM: recibe órdenes (girar, avanzar, pausar)
-   y devuelve eventos. Se publica en window.SnakeGame
-   (y en module.exports para poder probarlo con Node).
-   ========================================================= */
+// Lógica del juego. Aquí no se toca el DOM, solo el estado.
 (function (root) {
   'use strict';
 
-  // Vectores de cada dirección (y crece hacia abajo, como en el canvas)
   const DIRS = Object.freeze({
     up:    Object.freeze({ x: 0, y: -1 }),
     down:  Object.freeze({ x: 0, y: 1 }),
@@ -17,28 +11,28 @@
 
   const OPPOSITE = Object.freeze({ up: 'down', down: 'up', left: 'right', right: 'left' });
 
+  // valores para ajustar la dificultad
   const DEFAULTS = Object.freeze({
     cols: 20,
     rows: 20,
     startLength: 3,
-    startTick: 150,   // ms por paso al empezar
-    minTick: 70,      // límite de velocidad (ms por paso)
-    speedStep: 3,     // ms que se restan con cada bocado
-    starChance: 0.3,  // probabilidad de que aparezca ✦ al comer ♥
-    starLife: 45,     // pasos que dura la estrella antes de desaparecer
-    queueMax: 3,      // giros que se pueden guardar por adelantado
+    startTick: 150,   // ms por paso
+    minTick: 70,
+    speedStep: 3,
+    starChance: 0.3,
+    starLife: 45,     // en pasos, no en ms
+    queueMax: 3,
   });
 
   const sameCell = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y;
   const cloneCells = (cells) => cells.map((c) => ({ x: c.x, y: c.y }));
 
-  /* ---------- Crear una partida ---------- */
   function createState(options) {
     const cfg = Object.assign({}, DEFAULTS, options);
     const cx = Math.floor(cfg.cols / 2);
     const cy = Math.floor(cfg.rows / 2);
 
-    // La cabeza es snake[0]; el cuerpo se extiende hacia la izquierda.
+    // snake[0] es la cabeza
     const snake = [];
     for (let i = 0; i < cfg.startLength; i++) snake.push({ x: cx - i, y: cy });
 
@@ -48,7 +42,7 @@
       cols: cfg.cols,
       rows: cfg.rows,
       snake,
-      prev: cloneCells(snake),   // posiciones del paso anterior (para animar)
+      prev: cloneCells(snake),
       dir: 'right',
       queue: [],
       food: null,
@@ -57,14 +51,13 @@
       bites: 0,
       ticks: 0,
       tickMs: cfg.startTick,
-      status: 'ready',           // 'ready' | 'running' | 'paused' | 'over'
-      deathReason: null,         // 'wall' | 'self' | null
+      status: 'ready',           // ready | running | paused | over
+      deathReason: null,
     };
     state.food = randomFreeCell(state);
     return state;
   }
 
-  /* ---------- Celda libre al azar (o null si el tablero está lleno) ---------- */
   function randomFreeCell(state) {
     const key = (c) => c.y * state.cols + c.x;
     const taken = new Set(state.snake.map(key));
@@ -81,10 +74,8 @@
     return { x: i % state.cols, y: Math.floor(i / state.cols) };
   }
 
-  /* ---------- Giros ----------
-     Se compara con el ÚLTIMO giro en cola (no con la dirección actual).
-     Así, "derecha → arriba → izquierda" pulsado muy rápido funciona,
-     pero "derecha → izquierda" (180°) se rechaza. */
+  // Comparo con el último giro de la cola y no con la dirección actual,
+  // así no se pierden teclas rápidas y tampoco se puede dar media vuelta.
   function queueDirection(state, dir) {
     if (!DIRS[dir] || state.status === 'over') return false;
     const q = state.queue;
@@ -95,7 +86,6 @@
     return true;
   }
 
-  /* ---------- Estados ---------- */
   function start(state) {
     if (state.status !== 'ready' && state.status !== 'paused') return false;
     state.status = 'running';
@@ -122,14 +112,11 @@
     state.status = 'over';
     state.deathReason = reason;
     state.queue.length = 0;
-    state.prev = cloneCells(state.snake);   // congela la animación
+    state.prev = cloneCells(state.snake);
     return [{ type: 'die', reason }];
   }
 
-  /* ---------- Un paso del juego ----------
-     Devuelve una lista de eventos para que la interfaz reaccione:
-     { type: 'eat' | 'star', points, x, y }, { type: 'starGone' },
-     { type: 'die', reason }, { type: 'win' } */
+  // Avanza un paso y devuelve lo que pasó (eat, star, starGone, die, win)
   function step(state) {
     if (state.status !== 'running') return [];
     const events = [];
@@ -139,26 +126,22 @@
     const head = state.snake[0];
     const next = { x: head.x + v.x, y: head.y + v.y };
 
-    // 1. ¿Pared?
     if (next.x < 0 || next.y < 0 || next.x >= state.cols || next.y >= state.rows) {
       return die(state, 'wall');
     }
 
-    // 2. ¿Se muerde? Si no crece, la cola se va a mover,
-    //    así que puede entrar en la celda donde está la cola ahora.
     const ateFood = sameCell(next, state.food);
     const ateStar = sameCell(next, state.star);
     const grows = ateFood || ateStar;
+    // si no crece la cola se mueve, así que se vale entrar donde está la cola
     const body = grows ? state.snake : state.snake.slice(0, -1);
     if (body.some((c) => sameCell(c, next))) return die(state, 'self');
 
-    // 3. Mover: nueva cabeza al frente, quitar la cola (salvo que crezca)
     state.prev = cloneCells(state.snake);
     state.snake.unshift(next);
     if (!grows) state.snake.pop();
     state.ticks++;
 
-    // 4. Estrella: se come o se le acaba el tiempo
     if (ateStar) {
       state.score += 3;
       speedUp(state);
@@ -172,7 +155,6 @@
       }
     }
 
-    // 5. Corazón: sumar, mover la comida y quizá sacar una estrella
     if (ateFood) {
       state.score += 1;
       speedUp(state);
@@ -180,7 +162,8 @@
 
       state.food = null;
       state.food = randomFreeCell(state);
-      if (!state.food) {                    // ¡llenaste el tablero!
+      if (!state.food) {
+        // no queda espacio: ganaste
         state.status = 'over';
         events.push({ type: 'win' });
         return events;
@@ -200,5 +183,6 @@
   });
 
   root.SnakeGame = api;
+  // para poder probarlo con node
   if (typeof module === 'object' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,35 +1,32 @@
-/* =========================================================
-   Pastel Snake — estilos "Pastel Tech"
-   ========================================================= */
-
-/* 1. Tokens de diseño ------------------------------------
-   Toda la paleta vive aquí. main.js también lee estas
-   variables para pintar el canvas, así hay una sola fuente
-   de verdad para los colores. */
+/* colores y medidas (main.js también lee estas variables para el canvas) */
 :root {
   color-scheme: light dark;
 
-  --bg: #FFFBFD;
+  --bg: #F6FBF7;
   --card: #FFFFFF;
-  --border: #ECE3EE;
-  --text: #293247;
-  --muted: #59617A;
-  --board-a: #EEF6FF;
-  --board-b: #E3EFFC;
+  --border: #DCEBE1;
+  --text: #1E3328;
+  --muted: #4E6657;
+  --board-a: #EEF7F1;
+  --board-b: #E2F0E7;
 
-  --pink: #F8BBD0;
-  --blue: #BDE0FE;
-  --lilac: #CDB4DB;
-  --sky: #A2D2FF;
-  --accent-text: #B83E76;
-  --on-accent: #293247;          /* texto sobre botones pastel */
-  --sprite-line: #293247;        /* contorno pixel-art de ♥ y ✦ */
+  --green-2: #B7E4C7;
+  --green-3: #95D5B2;
+  --green-4: #74C69D;
+  --snake-head: #52B788;
+  --snake-mid: #74C69D;
+  --snake-tail: #A9DDBF;
+  --heart: #F8BBD0;
+  --star: #FFD966;
+  --accent-text: #2D6A4F;
+  --on-accent: #1E3328;
+  --sprite-line: #1E3328;
 
-  --overlay: rgba(255, 251, 253, 0.72);
-  --glow-1: rgba(248, 187, 208, 0.30);
-  --glow-2: rgba(189, 224, 254, 0.35);
-  --shadow: 0 14px 34px -14px rgba(184, 62, 118, 0.28);
-  --press: rgba(184, 62, 118, 0.28);
+  --overlay: rgba(246, 251, 247, 0.72);
+  --glow-1: rgba(149, 213, 178, 0.30);
+  --glow-2: rgba(216, 243, 220, 0.55);
+  --shadow: 0 14px 34px -14px rgba(45, 106, 79, 0.28);
+  --press: rgba(45, 106, 79, 0.30);
 
   --radius: 22px;
   --radius-sm: 12px;
@@ -41,24 +38,23 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0D1117;
-    --card: #1A2033;
-    --border: #2D3551;
-    --text: #F4F1F8;
-    --muted: #BAC0D6;
-    --board-a: #1C2640;
-    --board-b: #202B47;
-    --accent-text: #F8BBD0;
+    --card: #17221D;
+    --border: #2A3D33;
+    --text: #EEF6F0;
+    --muted: #B1C4B8;
+    --board-a: #15231C;
+    --board-b: #1A2B22;
+    --accent-text: #95D5B2;
     --sprite-line: #0D1117;
 
     --overlay: rgba(13, 17, 23, 0.72);
-    --glow-1: rgba(248, 187, 208, 0.08);
-    --glow-2: rgba(162, 210, 255, 0.07);
+    --glow-1: rgba(82, 183, 136, 0.10);
+    --glow-2: rgba(149, 213, 178, 0.06);
     --shadow: 0 14px 34px -14px rgba(0, 0, 0, 0.7);
     --press: rgba(0, 0, 0, 0.45);
   }
 }
 
-/* 2. Base ------------------------------------------------ */
 *, *::before, *::after { box-sizing: border-box; }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -66,7 +62,7 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   min-height: 100vh;
-  min-height: 100svh;            /* alto real en móviles (sin barra del navegador) */
+  min-height: 100svh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -98,7 +94,6 @@ a { color: var(--accent-text); }
   border: 0;
 }
 
-/* 3. Layout ---------------------------------------------- */
 .app {
   width: 100%;
   max-width: 520px;
@@ -123,7 +118,7 @@ a { color: var(--accent-text); }
   background: var(--card);
   transition: border-color 0.15s;
 }
-.back:hover { border-color: var(--pink); }
+.back:hover { border-color: var(--green-3); }
 
 .chip {
   font-family: var(--mono);
@@ -144,7 +139,6 @@ a { color: var(--accent-text); }
   box-shadow: var(--shadow);
 }
 
-/* 4. Título + corazón pixel-art --------------------------- */
 .title {
   display: flex;
   align-items: center;
@@ -169,34 +163,11 @@ a { color: var(--accent-text); }
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--blue), var(--lilac) 55%, var(--pink));
+  background: linear-gradient(135deg, var(--green-2), var(--green-4));
+  color: #1B4332;
 }
+.logo svg { display: block; }
 
-/* Corazón de 7×6 "píxeles" de 3px dibujado solo con box-shadow.
-   Cada sombra es un píxel; sin color explícito usan currentColor. */
-.pixel-heart {
-  position: relative;
-  width: 21px;
-  height: 18px;
-  color: #FFFFFF;
-}
-.pixel-heart::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 3px;
-  height: 3px;
-  box-shadow:
-    3px 0, 6px 0, 12px 0, 15px 0,
-    0 3px, 3px 3px, 6px 3px, 9px 3px, 12px 3px, 15px 3px, 18px 3px,
-    0 6px, 3px 6px, 6px 6px, 9px 6px, 12px 6px, 15px 6px, 18px 6px,
-    3px 9px, 6px 9px, 9px 9px, 12px 9px, 15px 9px,
-    6px 12px, 9px 12px, 12px 12px,
-    9px 15px;
-}
-
-/* 5. Marcador ------------------------------------------- */
 .hud {
   display: flex;
   align-items: center;
@@ -223,7 +194,7 @@ a { color: var(--accent-text); }
   font-size: 1.4rem;
   font-weight: 700;
   line-height: 1.25;
-  font-variant-numeric: tabular-nums;   /* los números no "bailan" al cambiar */
+  font-variant-numeric: tabular-nums;
 }
 .stat--best .stat-value { color: var(--accent-text); }
 
@@ -242,14 +213,12 @@ a { color: var(--accent-text); }
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.icon-btn:hover:not(:disabled) { border-color: var(--lilac); }
+.icon-btn:hover:not(:disabled) { border-color: var(--green-4); }
 .icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* 6. Tablero -------------------------------------------- */
 .board-wrap {
   position: relative;
   width: 100%;
-  /* Cuadrado que nunca es más alto que ~62% de la pantalla */
   max-width: min(100%, 62vh);
   max-width: min(100%, 62svh);
   aspect-ratio: 1 / 1;
@@ -264,10 +233,10 @@ a { color: var(--accent-text); }
   display: block;
   width: 100%;
   height: 100%;
-  touch-action: none;            /* el deslizar no hace scroll ni zoom */
+  touch-action: none; /* para que deslizar no mueva la página */
 }
 
-/* 7. Pantallas superpuestas (inicio / pausa / game over) - */
+/* pantallas de inicio, pausa y game over */
 .overlay {
   position: absolute;
   inset: 0;
@@ -308,26 +277,25 @@ a { color: var(--accent-text); }
   color: var(--muted);
 }
 
-/* 8. Botones -------------------------------------------- */
 .btn {
   min-height: 44px;
   padding: 10px 28px;
   border: none;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--pink), var(--lilac));
+  background: linear-gradient(135deg, var(--green-2), var(--green-4));
   color: var(--on-accent);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 0 var(--press);       /* sombra "dura", toque pixel-art */
+  box-shadow: 0 4px 0 var(--press);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 0 var(--press); }
 .btn:active { transform: translateY(3px);  box-shadow: 0 1px 0 var(--press); }
 
-/* 9. D-pad táctil --------------------------------------- */
+/* flechas para celular */
 .dpad {
-  display: none;                 /* oculto en computadora */
+  display: none;
   grid-template-columns: repeat(3, 60px);
   grid-template-rows: repeat(2, 60px);
   grid-template-areas:
@@ -344,7 +312,7 @@ a { color: var(--accent-text); }
   font-size: 1.15rem;
   cursor: pointer;
   box-shadow: 0 3px 0 var(--border);
-  touch-action: manipulation;    /* sin zoom por doble toque */
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
@@ -354,7 +322,7 @@ a { color: var(--accent-text); }
 .dpad-btn.is-pressed {
   transform: translateY(2px);
   box-shadow: 0 1px 0 var(--border);
-  background: var(--blue);
+  background: var(--green-2);
   color: var(--on-accent);
 }
 .dpad .up    { grid-area: up; }
@@ -362,7 +330,6 @@ a { color: var(--accent-text); }
 .dpad .down  { grid-area: down; }
 .dpad .right { grid-area: right; }
 
-/* 10. Ayuda y pie --------------------------------------- */
 .help {
   margin: 0;
   text-align: center;
@@ -391,7 +358,7 @@ kbd {
   color: var(--muted);
 }
 
-/* 11. Táctil vs. mouse ---------------------------------- */
+/* en pantallas táctiles se muestran las flechas */
 @media (pointer: coarse) {
   .dpad       { display: grid; }
   .help-keys  { display: none; }
@@ -406,7 +373,7 @@ kbd {
   }
 }
 
-/* Celular en horizontal: tablero a la izquierda, controles a la derecha */
+/* celular acostado: tablero a un lado, controles al otro */
 @media (pointer: coarse) and (orientation: landscape) and (max-height: 540px) {
   body { align-items: flex-start; }
   .app { max-width: 920px; }
@@ -434,20 +401,17 @@ kbd {
   .foot { display: none; }
 }
 
-/* 12. Animaciones y movimiento reducido ----------------- */
 @keyframes pop {
   from { opacity: 0; transform: translateY(6px) scale(0.95); }
   to   { opacity: 1; transform: none; }
 }
 
-/* El número del marcador "salta" al sumar puntos */
 @keyframes bump {
   40% { transform: scale(1.22); }
 }
 .stat-value { transform-origin: left center; }
 .stat-value.bump { animation: bump 0.28s ease-out; }
 
-/* El tablero tiembla al chocar */
 @keyframes shake {
   20% { transform: translateX(-6px); }
   40% { transform: translateX(5px); }
